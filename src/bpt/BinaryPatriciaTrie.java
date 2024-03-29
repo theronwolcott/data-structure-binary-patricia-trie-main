@@ -322,14 +322,24 @@ public class BinaryPatriciaTrie {
             return;
         }
         String tempKey = key + n.str;
-        // go left
-        fillArray(l, tempKey, n.left);
-        // self
+
         if (n.isKey) {
-            l.add(key);
+            fillArray(l, tempKey, n.left);
+            l.add(tempKey);
+            fillArray(l, tempKey, n.right);
+        } else {
+            fillArray(l, tempKey, n.left);
+            fillArray(l, tempKey, n.right);
         }
-        // go right
-        fillArray(l, tempKey, n.right);
+
+        // // go left
+        // fillArray(l, tempKey, n.left);
+        // // self
+        // if (n.isKey) {
+        // l.add(key);
+        // }
+        // // go right
+        // fillArray(l, tempKey, n.right);
 
     }
 

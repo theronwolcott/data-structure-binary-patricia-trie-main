@@ -311,7 +311,7 @@ public class StudentTests {
         var inOrderIterator = trie.inorderTraversal();
         var inOrderSet = new HashSet<String>();
         inOrderIterator.forEachRemaining(inOrderSet::add);
-        // assertEquals(set, inOrderSet);
+        assertEquals(set, inOrderSet);
 
         // longest
         var trieLongest = trie.getLongest();
@@ -335,6 +335,17 @@ public class StudentTests {
         assertTrue(trie.isEmpty());
         assertEquals(0, trie.getSize());
         assertEquals("", trie.getLongest());
+
+    }
+
+    @Test
+    public void getLongestTest() {
+        trie = new BinaryPatriciaTrie();
+        trie.insert("0000");
+        trie.insert("00");
+        trie.insert("1");
+
+        assertTrue(trie.getLongest().equals("0000"));
 
     }
 }
