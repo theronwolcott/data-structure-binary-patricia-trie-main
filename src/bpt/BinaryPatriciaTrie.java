@@ -173,11 +173,55 @@ public class BinaryPatriciaTrie {
      *         attempted deletion, {@code false} otherwise.
      */
     public boolean delete(String key) {
-        throw new UnimplementedMethodException(); // ERASE THIS LINE AFTER YOU IMPLEMENT THE METHOD!
+        bool.set(false);
+        root = deleteHelper(key, root);
+        return bool.get();
     }
 
     private TrieNode deleteHelper(String key, TrieNode n) {
-        throw new UnimplementedMethodException(); // ERASE THIS LINE AFTER YOU IMPLEMENT THE METHOD!
+        if (n == null) {
+            return n;
+        }
+        if (n.str == "" && key.startsWith("0")) { // Root, go left
+            n.left = deleteHelper(key, n.left);
+        } else if (n.str == "" && key.startsWith("1")) { // Root, go right
+            n.right = deleteHelper(key, n.right);
+        } else if (key.equals(n.str) && n.isKey == true) { // Strings are equal, we found it
+            bool.set(true);
+            if (n.left == null && n.right == null) { // if the node has no children, get rid of it
+                n.isKey = false;
+                return null;
+            }
+            if (n.left != null && n.right != null) { // if node has two children, set key false
+                n.isKey = false;
+                return n;
+            }
+            if (n.left != null || n.right != null) { // node has one child, merge
+                if (n.left != null) { // merge with left child
+                    n.left.str = n.str + n.left.str;
+                    return n.left;
+                }
+                if (n.right != null) { // merge with right child
+                    n.right.str = n.str + n.right.str;
+                    return n.right;
+                }
+            }
+        } else if (key.startsWith(n.str) && key.substring(n.str.length()).startsWith("0")) {
+            // Node is a prefix of key, go left
+            n.left = deleteHelper(key.substring(n.str.length()), n.left);
+            if (n.left == null && !n.isKey) {
+                n.right.str = n.str + n.right.str;
+                return n.right;
+            }
+        } else if (key.startsWith(n.str) && key.substring(n.str.length()).startsWith("1")) {
+            // Node is a prefix of key, go right
+            n.right = deleteHelper(key.substring(n.str.length()), n.right);
+            if (n.right == null && !n.isKey) {
+                n.left.str = n.str + n.left.str;
+                return n.left;
+            }
+        }
+        return n;
     }
 
     /**
@@ -311,7 +355,19 @@ public class BinaryPatriciaTrie {
      *         </p>
      */
     public String getLongest() {
-        throw new UnimplementedMethodException(); // ERASE THIS LINE AFTER YOU IMPLEMENT THE METHOD!
+        ArrayList<String> list = new ArrayList<>();
+        fillArray(list, "", root);
+        String longest = "";
+        for (String s : list) {
+            if (s.length() > longest.length()) {
+                longest = s;
+            } else if (s.length() == longest.length()) {
+                if (s.compareTo(longest) > 0) {
+                    longest = s;
+                }
+            }
+        }
+        return longest;
     }
 
     /**

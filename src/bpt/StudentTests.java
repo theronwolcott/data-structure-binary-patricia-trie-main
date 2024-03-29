@@ -4,6 +4,9 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import java.util.HashSet;
+import java.util.Random;
+
 /**
  * A jUnit test suite for {@link BinaryPatriciaTrie}.
  *
@@ -123,5 +126,215 @@ public class StudentTests {
                 trie.getSize());
         assertTrue("After inserting five strings and deleting one of them, the trie had some junk in it!",
                 trie.isJunkFree());
+    }
+
+    BinaryPatriciaTrie trie;
+
+    @Test
+    public void constructorTest1() {
+        trie = new BinaryPatriciaTrie();
+        assertTrue(trie.isEmpty());
+        assertEquals(0, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void insertTest1() {
+        // test CurrentIsPrefixOfKey
+        constructorTest1();
+        assertTrue(trie.insert("000"));
+        assertTrue(trie.insert("0000"));
+        assertTrue(trie.insert("0001"));
+        assertEquals(3, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void insertTest2() {
+        // test KeyIsPrefixOfCurrent
+        insertTest1();
+        assertTrue(trie.insert("00"));
+        assertEquals(4, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void insertTest3() {
+        // test CommonPrefix
+        insertTest1();
+        assertTrue(trie.insert("001"));
+        assertEquals(4, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void insertTest4() {
+        // test Equal
+        insertTest3();
+        assertTrue(trie.insert("00"));
+        assertEquals(5, trie.getSize());
+        assertTrue(trie.isJunkFree());
+
+        // duplicate
+        assertFalse(trie.insert("00"));
+        assertEquals(5, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void insertTest5() {
+        constructorTest1();
+        assertTrue(trie.insert("1001001111"));
+        assertEquals(1, trie.getSize());
+        assertTrue(trie.isJunkFree());
+        assertTrue(trie.insert("0000"));
+        assertEquals(2, trie.getSize());
+        assertTrue(trie.isJunkFree());
+        assertTrue(trie.insert("111100"));
+        assertEquals(3, trie.getSize());
+        assertTrue(trie.isJunkFree());
+        assertTrue(trie.insert("000100"));
+        assertEquals(4, trie.getSize());
+        assertTrue(trie.isJunkFree());
+        assertTrue(trie.insert("110110"));
+        assertEquals(5, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void insertTest6() {
+        constructorTest1();
+        assertTrue(trie.insert("0000001"));
+        assertEquals(1, trie.getSize());
+        assertTrue(trie.isJunkFree());
+        assertTrue(trie.insert("11000011"));
+        assertEquals(2, trie.getSize());
+        assertTrue(trie.isJunkFree());
+        assertTrue(trie.insert("1100100"));
+        assertEquals(3, trie.getSize());
+        assertTrue(trie.insert("1110"));
+        assertEquals(4, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void deleteTest1() {
+        // no children
+        insertTest1();
+        assertTrue(trie.delete("0000"));
+        assertEquals(2, trie.getSize());
+        assertTrue(trie.isJunkFree());
+
+        // miss
+        assertFalse(trie.delete("0000"));
+        assertEquals(2, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void deleteTest2() {
+        // one child - left
+        insertTest2();
+        assertTrue(trie.delete("00"));
+        assertEquals(3, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void deleteTest3() {
+        // one child - right
+        deleteTest1();
+        assertTrue(trie.delete("0001"));
+        assertEquals(1, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void deleteTest4() {
+        // two children
+        insertTest1();
+        assertTrue(trie.delete("000"));
+        assertEquals(2, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    @Test
+    public void deleteTest5() {
+        // found, but non-key
+        insertTest3();
+        assertFalse(trie.delete("00"));
+        assertEquals(4, trie.getSize());
+        assertTrue(trie.isJunkFree());
+    }
+
+    private String getRandomKey(int maxLength) {
+        var random = new Random();
+        String s = "";
+        int length = random.nextInt(maxLength) + 1;
+        for (int j = 0; j < length; j++) {
+            s += (random.nextInt(2) < 1) ? "0" : "1";
+        }
+        return s;
+    }
+
+    @Test
+    public void advancedTest1() {
+        constructorTest1();
+        int testSize = 1000;
+        var set = new HashSet<String>();
+        for (int i = 0; i < testSize; i++) {
+            String s = getRandomKey(testSize / 100);
+            if (set.add(s)) {
+                // new keys
+                assertTrue(trie.insert(s));
+                assertTrue(trie.search(s));
+            } else {
+                // dupe keys
+                assertFalse(trie.insert(s));
+                assertTrue(trie.search(s));
+            }
+            assertEquals(set.size(), trie.getSize());
+            assertTrue(trie.isJunkFree());
+
+            // serach misses
+            String miss = getRandomKey(testSize / 100);
+            if (set.contains(miss)) {
+                assertTrue(trie.search(miss));
+            } else {
+                assertFalse(trie.search(miss));
+            }
+        }
+        for (var s : set) {
+            assertTrue(trie.search(s));
+        }
+
+        var inOrderIterator = trie.inorderTraversal();
+        var inOrderSet = new HashSet<String>();
+        inOrderIterator.forEachRemaining(inOrderSet::add);
+        // assertEquals(set, inOrderSet);
+
+        // longest
+        var trieLongest = trie.getLongest();
+        var setLongest = set.stream()
+                .reduce("", (winner, element) -> {
+                    if (element.length() > winner.length())
+                        return element;
+                    if (element.length() == winner.length() && element.compareTo(winner) > 0)
+                        return element;
+                    return winner;
+                });
+        assertEquals(trieLongest, setLongest);
+
+        // delete
+        var size = set.size();
+        for (var s : set) {
+            assertTrue(trie.delete(s));
+            assertEquals(--size, trie.getSize());
+            assertTrue(trie.isJunkFree());
+        }
+        assertTrue(trie.isEmpty());
+        assertEquals(0, trie.getSize());
+        assertEquals("", trie.getLongest());
+
     }
 }
