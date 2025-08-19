@@ -31,17 +31,18 @@ public class BinaryPatriciaTrie {
      * *exactly* this data
      * stored in the nodes.
      */
+    // Inner class representing a node in the Patricia Trie
     private static class TrieNode {
-        private TrieNode left, right;
-        private String str;
-        private boolean isKey;
+        private TrieNode left, right; // Children nodes: left for '0', right for '1'
+        private String str; // The string (bit sequence) stored at this node
+        private boolean isKey; // True if this node represents a key in the trie
 
-        // Default constructor for your inner nodes.
+        // Default constructor for an empty node
         TrieNode() {
             this("", false);
         }
 
-        // Non-default constructor.
+        // Constructor for a node with a specific string and key status
         TrieNode(String str, boolean isKey) {
             left = right = null;
             this.str = str;
@@ -49,15 +50,15 @@ public class BinaryPatriciaTrie {
         }
     }
 
-    private TrieNode root;
-    private AtomicBoolean bool;
+    private TrieNode root; // Root node of the trie
+    private AtomicBoolean bool; // Used to track results in recursive helpers
 
     /**
      * Simple constructor that will initialize the internals of {@code this}.
      */
     public BinaryPatriciaTrie() {
-        root = new TrieNode("", false);
-        bool = new AtomicBoolean();
+    root = new TrieNode("", false); // Initialize root as empty node
+    bool = new AtomicBoolean(); // Used for returning results from helpers
     }
 
     /**
@@ -68,28 +69,32 @@ public class BinaryPatriciaTrie {
      *         otherwise.
      */
     public boolean search(String key) {
-        bool.set(false);
-        searchHelper(key, root);
-        return bool.get();
+    bool.set(false); // Reset result flag
+    searchHelper(key, root); // Start recursive search from root
+    return bool.get(); // Return whether key was found
     }
 
     private void searchHelper(String key, TrieNode node) {
-        bool.set(false);
+        bool.set(false); // Reset flag for each call
         if (node == null) {
+            // Base case: reached a null node, key not found
             return;
         }
-        if (node.str == "" && key.startsWith("0")) { // Root, go left
+        // If at root, decide direction based on first bit
+        // Empty str means we are at root
+        if (node.str == "" && key.startsWith("0")) {
             searchHelper(key, node.left);
-        } else if (node.str == "" && key.startsWith("1")) { // Root, go right
+        } else if (node.str == "" && key.startsWith("1")) {
             searchHelper(key, node.right);
-        } else if (key.equals(node.str) && node.isKey == true) { // Strings are equal, we found it
+        } else if (key.equals(node.str) && node.isKey == true) {
+            // Found the key at this node
             bool.set(true);
             return;
         } else if (key.startsWith(node.str) && key.substring(node.str.length()).startsWith("0")) {
-            // Node is a prefix of key, go left
+            // Node's string is a prefix of key, go left
             searchHelper(key.substring(node.str.length()), node.left);
         } else if (key.startsWith(node.str) && key.substring(node.str.length()).startsWith("1")) {
-            // Node is a prefix of key, go left
+            // Node's string is a prefix of key, go right
             searchHelper(key.substring(node.str.length()), node.right);
         }
     }
@@ -102,67 +107,74 @@ public class BinaryPatriciaTrie {
      *         {@code false} otherwise.
      */
     public boolean insert(String key) {
-        bool.set(false);
-        root = insertHelper(key, root);
-        return bool.get();
+    bool.set(false); // Reset result flag
+    root = insertHelper(key, root); // Insert key starting from root
+    return bool.get(); // Return true if key was newly inserted
     }
 
     private TrieNode insertHelper(String key, TrieNode n) {
         if (n == null) {
-            bool.set(true);
+            // If current node is null, create new node for key
+            bool.set(true); // Key was newly inserted
             return new TrieNode(key, true);
         }
 
-        if (key.equals(n.str) && n.isKey) { // if key is equal to str
+        // If key matches node's string
+        if (key.equals(n.str) && n.isKey) {
+            // Key already exists
             return n;
         } else if (key.equals(n.str) && !n.isKey) {
+            // Node exists but wasn't a key, mark as key
             n.isKey = true;
             bool.set(true);
             return n;
         }
-        if (key.startsWith(n.str) || n.str.equals("")) { // str is a prefix of key, chop off equal bit and recurse
+        // If node's string is a prefix of key or node is root
+        if (key.startsWith(n.str) || n.str.equals("")) {
+            // Recurse left or right based on next bit
             if (key.substring(n.str.length()).startsWith("0")) {
                 n.left = insertHelper(key.substring(n.str.length()), n.left);
             } else {
                 n.right = insertHelper(key.substring(n.str.length()), n.right);
             }
-        } else if (n.str.startsWith(key)) { // key is a prefix of str, need a new node with equal part as child of n,
-                                            // existing gets updated
-            TrieNode newNode = new TrieNode(key, true); // the part that's equal
-            if (n.str.substring(key.length()).startsWith("0")) { // if we need to go left
-                newNode.left = n;
-
-            } else { // go right
-                newNode.right = n;
+        } else if (n.str.startsWith(key)) {
+            // Key is a prefix of node's string, need to split node
+            TrieNode newNode = new TrieNode(key, true); // New node for key
+            if (n.str.substring(key.length()).startsWith("0")) {
+                newNode.left = n; // Attach existing node as left child
+            } else {
+                newNode.right = n; // Attach existing node as right child
             }
-            n.str = n.str.substring(key.length());
+            n.str = n.str.substring(key.length()); // Update existing node's string
             bool.set(true);
             return newNode;
-        } else { // common prefix
+        } else {
+            // Find common prefix between key and node's string
             int index = diffIndex(key, n.str);
             String prefix = key.substring(0, index);
-            TrieNode newNode = new TrieNode(prefix, false);
-            n.str = n.str.substring(index);
+            TrieNode newNode = new TrieNode(prefix, false); // New splitter node
+            n.str = n.str.substring(index); // Update node's string
             if (key.substring(index).startsWith("0")) {
-                newNode.left = new TrieNode(key.substring(index), true);
-                newNode.right = n;
+                newNode.left = new TrieNode(key.substring(index), true); // Insert key left
+                newNode.right = n; // Existing node right
             } else {
-                newNode.right = new TrieNode(key.substring(index), true);
-                newNode.left = n;
+                newNode.right = new TrieNode(key.substring(index), true); // Insert key right
+                newNode.left = n; // Existing node left
             }
             bool.set(true);
             return newNode;
         }
-        return n;
+        return n; // Return current node
     }
 
     private int diffIndex(String key, String str) {
+        // Find index where key and str differ
         for (int i = 0; i < key.length(); i++) {
             if (key.charAt(i) != str.charAt(i)) {
                 return i;
             }
         }
-        return -1; // never actually gets here
+        return -1; // Should not reach here if called correctly
     }
 
     /**
@@ -173,55 +185,63 @@ public class BinaryPatriciaTrie {
      *         attempted deletion, {@code false} otherwise.
      */
     public boolean delete(String key) {
-        bool.set(false);
-        root = deleteHelper(key, root);
-        return bool.get();
+    bool.set(false); // Reset result flag
+    root = deleteHelper(key, root); // Start deletion from root
+    return bool.get(); // Return true if key was deleted
     }
 
     private TrieNode deleteHelper(String key, TrieNode n) {
         if (n == null) {
+            // Base case: node not found
             return n;
         }
-        if (n.str == "" && key.startsWith("0")) { // Root, go left
+        // If at root, decide direction based on first bit
+        if (n.str == "" && key.startsWith("0")) {
             n.left = deleteHelper(key, n.left);
-        } else if (n.str == "" && key.startsWith("1")) { // Root, go right
+        } else if (n.str == "" && key.startsWith("1")) {
             n.right = deleteHelper(key, n.right);
-        } else if (key.equals(n.str) && n.isKey == true) { // Strings are equal, we found it
+        } else if (key.equals(n.str) && n.isKey == true) {
+            // Found the key to delete
             bool.set(true);
-            if (n.left == null && n.right == null) { // if the node has no children, get rid of it
+            if (n.left == null && n.right == null) {
+                // Leaf node, remove it
                 n.isKey = false;
                 return null;
             }
-            if (n.left != null && n.right != null) { // if node has two children, set key false
+            if (n.left != null && n.right != null) {
+                // Node has two children, just mark as not a key
                 n.isKey = false;
                 return n;
             }
-            if (n.left != null || n.right != null) { // node has one child, merge
-                if (n.left != null) { // merge with left child
-                    n.left.str = n.str + n.left.str;
+            if (n.left != null || n.right != null) {
+                // Node has one child, merge with child
+                if (n.left != null) {
+                    n.left.str = n.str + n.left.str; // Merge strings
                     return n.left;
                 }
-                if (n.right != null) { // merge with right child
-                    n.right.str = n.str + n.right.str;
+                if (n.right != null) {
+                    n.right.str = n.str + n.right.str; // Merge strings
                     return n.right;
                 }
             }
         } else if (key.startsWith(n.str) && key.substring(n.str.length()).startsWith("0")) {
-            // Node is a prefix of key, go left
+            // Node's string is a prefix of key, go left
             n.left = deleteHelper(key.substring(n.str.length()), n.left);
+            // If left child is removed and current node isn't a key, merge with right
             if (n.left == null && !n.isKey) {
                 n.right.str = n.str + n.right.str;
                 return n.right;
             }
         } else if (key.startsWith(n.str) && key.substring(n.str.length()).startsWith("1")) {
-            // Node is a prefix of key, go right
+            // Node's string is a prefix of key, go right
             n.right = deleteHelper(key.substring(n.str.length()), n.right);
+            // If right child is removed and current node isn't a key, merge with left
             if (n.right == null && !n.isKey) {
                 n.left.str = n.str + n.left.str;
                 return n.left;
             }
         }
-        return n;
+        return n; // Return current node
     }
 
     /**
@@ -231,6 +251,7 @@ public class BinaryPatriciaTrie {
      *         otherwise.
      */
     public boolean isEmpty() {
+        // Trie is empty if size is zero
         if (getSize() == 0) {
             return true;
         }
@@ -243,17 +264,20 @@ public class BinaryPatriciaTrie {
      * @return The number of keys in the tree.
      */
     public int getSize() {
-        return getSizeHelper(root);
+    return getSizeHelper(root); // Start counting from root
     }
 
     private int getSizeHelper(TrieNode n) {
         if (n == null) {
+            // Base case: null node
             return 0;
         }
         if (n.isKey) {
+            // Count this node and recurse
             return getSizeHelper(n.left) + getSizeHelper(n.right) + 1;
         } else {
-            return getSizeHelper(n.left) + getSizeHelper(n.right) + 0;
+            // Not a key, just recurse
+            return getSizeHelper(n.left) + getSizeHelper(n.right);
         }
     }
 
@@ -293,11 +317,12 @@ public class BinaryPatriciaTrie {
      *         order</i>.
      */
     public Iterator<String> inorderTraversal() {
-        ArrayList<String> list = new ArrayList<>();
-        fillArray(list, "", root);
-        int originalSize = list.size();
+        ArrayList<String> list = new ArrayList<>(); // List to hold keys
+        fillArray(list, "", root); // Fill list with keys using inorder traversal
+        int originalSize = list.size(); // Used to detect concurrent modification
         var listIterator = list.iterator();
 
+        // Return an iterator over the list
         Iterator<String> iterator = new Iterator<String>() {
 
             @Override
@@ -307,6 +332,7 @@ public class BinaryPatriciaTrie {
 
             @Override
             public String next() {
+                // Check for concurrent modification
                 if (originalSize != list.size()) {
                     throw new ConcurrentModificationException();
                 }
@@ -319,15 +345,18 @@ public class BinaryPatriciaTrie {
 
     private void fillArray(ArrayList<String> l, String key, TrieNode n) {
         if (n == null) {
+            // Base case: null node
             return;
         }
-        String tempKey = key + n.str;
+        String tempKey = key + n.str; // Build up the key as we traverse
 
         if (n.isKey) {
+            // Inorder: left, self, right
             fillArray(l, tempKey, n.left);
-            l.add(tempKey);
+            l.add(tempKey); // Add key if this node is a key
             fillArray(l, tempKey, n.right);
         } else {
+            // Not a key, just traverse children
             fillArray(l, tempKey, n.left);
             fillArray(l, tempKey, n.right);
         }
@@ -365,13 +394,15 @@ public class BinaryPatriciaTrie {
      *         </p>
      */
     public String getLongest() {
-        ArrayList<String> list = new ArrayList<>();
-        fillArray(list, "", root);
+        ArrayList<String> list = new ArrayList<>(); // List to hold all keys
+        fillArray(list, "", root); // Fill list with all keys
         String longest = "";
         for (String s : list) {
+            // Find longest string
             if (s.length() > longest.length()) {
                 longest = s;
             } else if (s.length() == longest.length()) {
+                // If tie, pick lexicographically larger
                 if (s.compareTo(longest) > 0) {
                     longest = s;
                 }
@@ -389,17 +420,20 @@ public class BinaryPatriciaTrie {
      *         or split into two subtrees, {@code false} otherwise.
      */
     public boolean isJunkFree() {
-        return isEmpty() || (isJunkFree(root.left) && isJunkFree(root.right));
+    // Trie is junk-free if empty or both subtrees are junk-free
+    return isEmpty() || (isJunkFree(root.left) && isJunkFree(root.right));
     }
 
     private boolean isJunkFree(TrieNode n) {
         if (n == null) { // Null subtrees trivially junk-free
             return true;
         }
-        if (!n.isKey) { // Non-key nodes need to be strict splitter nodes
+        if (!n.isKey) {
+            // Non-key nodes must have two children and both must be junk-free
             return ((n.left != null) && (n.right != null) && isJunkFree(n.left) && isJunkFree(n.right));
         } else {
-            return (isJunkFree(n.left) && isJunkFree(n.right)); // But key-containing nodes need not.
+            // Key nodes can have any children, just check their junk-freeness
+            return (isJunkFree(n.left) && isJunkFree(n.right));
         }
     }
 }
